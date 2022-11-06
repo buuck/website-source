@@ -228,6 +228,34 @@ figure {
     transition: $global-transition;
   }
 
+  &.smaller {
+    > img {
+      display: block;
+      width: 51%;
+      height: auto;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    figcaption {
+      width: 100%;
+      text-align: left;
+    }
+  }
+
+  &.three-quarter {
+    > img {
+      display: block;
+      width: 75%;
+      height: auto;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    figcaption {
+      width: 100%;
+      text-align: left;
+    }
+  }
+
   > a {
     display: block;
   }

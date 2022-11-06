@@ -1,0 +1,9 @@
+name: personal_website
+dependencies:
+  - python>=3.11
+  - matplotlib
+  - scipy
+  - numpy
+  - seaborn
+  - ipykernel
+  - ipympl
