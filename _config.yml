@@ -13,7 +13,7 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: Micah Buuck's Personal Website
+title: Micah Buuck, PhD
 email: 
 description: >- # this means to ignore newlines until "baseurl:"
   The personal website of Micah Buuck. I'm a Research Associate at SLAC
@@ -22,7 +22,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   worked on.
 twitter_username: buuck_wuucky
 github_username: buuck
-minimal_mistakes_skin: contrast
+minimal_mistakes_skin: air
 search: true
 
 # Build settings
