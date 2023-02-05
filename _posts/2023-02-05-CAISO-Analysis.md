@@ -2,59 +2,11 @@
 
 This data comes from [Kaggle](https://www.kaggle.com/datasets/karatechop/caiso-renewable-energy-data-20212022), and presumably ultimately from CAISO. The units are not labeled, so I am guessing a bit here on what is what. I'm going to do some exploratory analysis, and see if we can do any meaningful forecasting.
 
-
-```python
-import seaborn as sns
-import pandas as pd
-import numpy as np
-import datetime
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import scipy
-from time import time
-```
-
-
-```python
-sns.set_theme(context='notebook', style='whitegrid')
-```
-
 ### Read and preprocess data
 
 Make sure that the date/time columns in the DataFrame are coded as such so that `seaborn`/`matplotlib` don't treat them as strings, which causes major problems when plotting.
 
 It's not clear what the units are for the different energy sources, but based on what is on the [CAISO website](https://www.caiso.com/TodaysOutlook/Pages/default.aspx), I'm guessing they're MW.
-
-
-```python
-power_sources = ['Solar', 'Wind', 'Geothermal', 'Biomass',
-       'Biogas', 'Small hydro', 'Coal', 'Nuclear', 'Natural Gas',
-       'Large Hydro', 'Batteries', 'Imports']
-other = ['Date', 'Time', 'DateTime', 'Month', 'Year']
-```
-
-
-```python
-df = pd.read_csv('caiso_2021-22.csv', date_parser=['Date', 'Time'])
-df.drop(columns=['Other'], inplace=True) # There is hardly any of this, and it just makes the plots look weird
-df.Date = pd.to_datetime(df.Date)
-df.Time = pd.to_datetime(df.Time)
-```
-
-
-```python
-# Compute the total 
-df['Total power'] = df['Solar']
-for ps in power_sources[1:]:
-    df['Total power'] += df[ps]
-```
-
-
-```python
-df
-```
-
-
 
 
 <div>
@@ -349,13 +301,6 @@ df
 From the description below, we can see that Natural Gas is clearly the largest power source, and also the second most variable after Solar (2nd highest standard deviation).
 
 
-```python
-df.describe()
-```
-
-
-
-
 <div>
 <style scoped>
     .dataframe tbody tr th:only-of-type {
@@ -556,33 +501,8 @@ df.describe()
 This dataset comes in 5 minute intervals spanning a full year. That is >100k samples, which is difficult to visualize meaningfully all at once. Furthermore, there are at least 2 meaningful periods of variation in this dataset: daily and annually. For these reasons, we'll make 2 different plots, one showing the daily average power generation over the course of the full year, and one showing hourly power generation over one day, averaging over every day of the dataset.
 
 If we do this for only the Solar power data, we see the following figures
-
-
-```python
-sns.lineplot(data=df, x='Date', y='Solar')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Date', ylabel='Solar'>
-
-
-
-
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_11_1.png" | relative_url }})
-    
-
-
-
-```python
-ax = sns.lineplot(data=df, x='Time', y='Solar')
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-plt.show()
-```
-
-
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_12_0.png" | relative_url }})
     
@@ -591,18 +511,6 @@ plt.show()
 The curves are almost exactly what we should expect. The annual curve peaks in late June at the summer solstice, and has a trough in late December during the winter solstice. The light blue shaded region shows the 95% inner quantile range.
 
 In order to make more plots easily with Seaborn, we need to convert the DataFrame from wide to long format.
-
-
-```python
-df_long = df.drop(columns=['Unnamed: 0'])\
-    .melt(id_vars=['Date', 'Time', 'DateTime', 'Month', 'Year'],
-          var_name='Source',
-          value_name='Power (MW)')
-df_long
-```
-
-
-
 
 <div>
 <style scoped>
@@ -748,63 +656,12 @@ df_long
 </div>
 
 
-
-Seaborn will order the line colors based on the order in which they show up in the DataFrame. This is fine, but I want them to be listed in the legend in the same order as they will appear visually on the plot.
-
-
-```python
-argsort = df_long.groupby('Source').mean(numeric_only=True)['Power (MW)']\
-            .argsort().values[::-1]
-hue_order = np.array(
-    df_long.groupby('Source').mean(numeric_only=True)\
-        ['Power (MW)'][argsort].index
-    )
-# pal = np.concatenate(([[0,0,0]], np.array(sns.color_palette('Paired', len(hue_order)-1))))
-pal = np.array(sns.color_palette('husl', len(hue_order)))[argsort]
-pal[0] = np.array([0,0,0])
-```
-
-Next we'll make the same plots as above, but this time for all power sources. We can do this easily with the long-form DataFrame and Seaborn.
+Next we'll make the same plots as above, but this time for all power sources.
 
 
-```python
-fig, ax = plt.subplots(figsize=(15,15/scipy.constants.golden))
-ax = sns.lineplot(
-    ax=ax,
-    data=df_long,
-    x='Date',
-    y='Power (MW)',
-    hue='Source',
-    palette=pal,
-    hue_order=hue_order
-    )
-ax.set(yscale='log')
-ax.set_ylim([1,5e4])
-plt.show()
-```
-
-    
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_18_1.png" | relative_url }})
     
 
-
-
-```python
-fig, ax = plt.subplots(figsize=(15,15/scipy.constants.golden))
-ax = sns.lineplot(
-    ax=ax,
-    data=df_long,
-    x='Date',
-    y='Power (MW)',
-    hue='Source',
-    palette=pal,
-    hue_order=hue_order
-    )
-plt.show()
-```
-
-
-    
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_19_1.png" | relative_url }})
     
 
@@ -822,46 +679,10 @@ There are a number of interesting features happening in the two figures above.
 Now let's take a look at the hourly data.
 
 
-```python
-fig, ax = plt.subplots(figsize=(15,15/scipy.constants.golden))
-ax = sns.lineplot(
-    ax=ax,
-    data=df_long,
-    x='Time',
-    y='Power (MW)',
-    hue='Source',
-    palette=pal,
-    hue_order=hue_order
-    )
-ax.set(yscale='log')
-ax.set_ylim([5,4e4])
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-plt.show()
-```
-
-    
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_21_1.png" | relative_url }})
     
 
 
-
-```python
-fig, ax = plt.subplots(figsize=(15,15/scipy.constants.golden))
-ax = sns.lineplot(
-    ax=ax,
-    data=df_long,
-    x='Time',
-    y='Power (MW)',
-    hue='Source',
-    palette=pal,
-    hue_order=hue_order
-    )
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-plt.show()
-```
-
-
-    
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_22_1.png" | relative_url }})
     
 
@@ -884,51 +705,10 @@ For the last plots in this section, I'm going to separate sources into dispatcha
 
 In principle, some of the other resources can be ramped up or down, but I would guess that they aren't because they are smaller and more distributed, and may not be technically set up to be ramped on demand.
 
-
-```python
-df_long = df_long[df_long['Source']!='Total power']
-dispatchable = ['Natural Gas', 'Imports', 'Large Hydro', 'Small hydro', 'Batteries', 'Coal']
-variable = ['Solar', 'Wind', 'Geothermal', 'Biomass', 'Biogas', 'Nuclear']
-df_long['Dispatchable'] = df_long['Source'].apply(lambda x: x in dispatchable)
-```
-
-
-```python
-df_dispatchable = df_long.groupby(by=['DateTime', 'Time', 'Date', 'Dispatchable']).sum()
-df_dispatchable.reset_index(level=3, inplace=True)
-```
-
-
-
-```python
-fig, ax = plt.subplots(figsize=(15,15/scipy.constants.golden))
-ax = sns.lineplot(data=df_dispatchable, x='Time', y='Power (MW)', hue='Dispatchable')
-ax.set_ylim([0, ax.get_ylim()[1]])
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-```
-
-
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_26_0.png" | relative_url }})
     
-
-
-
-```python
-fig, ax = plt.subplots(figsize=(15,15/scipy.constants.golden))
-ax = sns.lineplot(data=df_dispatchable, x='Date', y='Power (MW)', hue='Dispatchable')
-ax.set_ylim([0, ax.get_ylim()[1]])
-```
-
-
-
-
-    (0.0, 26955.196124131944)
-
-
-
-
-    
+ 
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_27_1.png" | relative_url }})
     
 
@@ -939,73 +719,18 @@ There's not quite as much to see here as in the previous plots, except that the 
 
 Let's see if we can extract any utility (haha) from time-series analysis of this data. First we'll try an ARIMA analysis.
 
-
-```python
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from statsmodels.graphics.tsaplots import plot_pacf, plot_acf
-```
-
 We have a full year of 5-minute samples available, which translates to 105,104 samples. This (empirially) is too many to fit on my laptop, so I'm going to downsample the data to hourly. In the real world, 5-minute predictions may be useful, but we're going to make do with 1-hr predictions for now.
-
-
-```python
-df['Hour'] = df.DateTime.apply(datetime.datetime.fromisoformat).dt.hour
-df_hourly = df.groupby(by=['Date', 'Hour']).mean()
-df_hourly.dropna(inplace=True) # Daylight savings causes a NaN
-```
-
 
 We're going to try to predict the total amount of power from dispatchable resources required at any point in time. This is similar to what a real power company or ISO has to do in real time: tune the dispatchable power sources to cover the difference between variable supply and demand at all times.
 
 Since the amount of variable resource supply affects how much dispatchable power will be needed, it is reasonable to look for relationships between previous values of variable power output and the current amount of dispatchable power. Below I create a series of plots showing the relationship between a series of lagged variable power samples and dispatchable power.
 
 
-```python
-df_hourly['Dispatchable'] = np.sum([df_hourly[s] for s in dispatchable], axis=0)
-df_hourly['Variable'] = np.sum([df_hourly[s] for s in variable], axis=0)
-for i in range(1, 10):
-    df_hourly['Variable.L{}'.format(i)] = np.roll(df_hourly['Variable'], i)
-```
-
-
-    ---------------------------------------------------------------------------
-
-    NameError                                 Traceback (most recent call last)
-
-    Cell In[14], line 1
-    ----> 1 df_hourly['Dispatchable'] = np.sum([df_hourly[s] for s in dispatchable], axis=0)
-          2 df_hourly['Variable'] = np.sum([df_hourly[s] for s in variable], axis=0)
-          3 for i in range(1, 10):
-
-
-    NameError: name 'dispatchable' is not defined
-
-
 First let's take a look at the autocorrelation and partial autocorrelation functions. These will help us decide what kind of model is most appropriate.
-
-
-```python
-# I don't know if it's a bug in statsmodels or what, but this makes two copies of one or both plots for some reason
-plot_acf(df_hourly['Dispatchable'], lags=100)
-plot_pacf(df_hourly['Dispatchable'], lags=100)
-```
-
-
-
-
-    
-![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_36_1.png" | relative_url }})
-    
-
-
-
 
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_36_2.png" | relative_url }})
     
-
-
 
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_36_3.png" | relative_url }})
@@ -1017,52 +742,13 @@ We see pretty clear evidence of a daily pattern in the autocorrelation function.
 We should also look at the real-time relationship between variable and dispatchable resources. Clearly there is a strong relationship, but if we are trying to predict future values of dispatchable power, we will only have access to past values of variable power. Therefore, we need to take at least one lag to make this realistic.
 
 
-```python
-sns.kdeplot(data=df_hourly, x='Dispatchable', y='Variable')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Dispatchable', ylabel='Variable'>
-
-
-
-
-    
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_39_1.png" | relative_url }})
     
-
-
-
-```python
-sns.kdeplot(data=df_hourly[1:], x='Dispatchable', y='Variable.L1')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Dispatchable', ylabel='Variable.L1'>
-
-
 
 
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_40_1.png" | relative_url }})
     
-
-
-
-```python
-sns.kdeplot(data=df_hourly[1:], x='Dispatchable', y='Variable.L2')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Dispatchable', ylabel='Variable.L2'>
-
-
 
 
     
@@ -1071,35 +757,9 @@ sns.kdeplot(data=df_hourly[1:], x='Dispatchable', y='Variable.L2')
 
 
 
-```python
-sns.kdeplot(data=df_hourly[1:], x='Dispatchable', y='Variable.L3')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Dispatchable', ylabel='Variable.L3'>
-
-
-
-
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_42_1.png" | relative_url }})
     
-
-
-
-```python
-sns.kdeplot(data=df_hourly[9:], x='Dispatchable', y='Variable.L9')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Dispatchable', ylabel='Variable.L9'>
-
-
-
 
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_43_1.png" | relative_url }})
@@ -1110,13 +770,6 @@ The first two variable lags have a reasonably strong relationship with the dispa
 
 Given the results of the autocorrelation plots and the Variable vs. Dispatchable plots above, let's build a series of models with 1 and 2 Variable source lags, building up the number of autocorrelated lags as far as we reasonably can. We'll also include one 24-hr seasonal term.
 
-
-```python
-# Baseline, no seasonal autocorrelation, no exogenous variables
-model_0_1_0 = ARIMA(endog=df_hourly['Dispatchable'], order=(1,0,0))
-res_0_1_0 = model_0_1_0.fit()
-print(res_0_1_0.summary())
-```
                                    SARIMAX Results                                
     ==============================================================================
     Dep. Variable:           Dispatchable   No. Observations:                 8759
@@ -1144,12 +797,7 @@ print(res_0_1_0.summary())
 
 
 
-```python
-# Baseline, no autoregression, 24-hr "seasonal" autoregression
-model_0_0_1 = ARIMA(endog=df_hourly['Dispatchable'], order=(0,0,0), seasonal_order=(1,0,0,24))
-res_0_0_1 = model_0_0_1.fit()
-print(res_0_0_1.summary())
-```
+
                                    SARIMAX Results                                
     ==============================================================================
     Dep. Variable:           Dispatchable   No. Observations:                 8759
@@ -1177,12 +825,6 @@ print(res_0_0_1.summary())
 
 
 
-```python
-# Baseline with both autocorrelation and seasonal autocorrelation
-model_0_1_1 = ARIMA(endog=df_hourly['Dispatchable'], order=(1,0,0), seasonal_order=(1, 0, 0, 24))
-res_0_1_1 = model_0_1_1.fit()
-print(res_0_1_1.summary())
-```
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1212,12 +854,6 @@ print(res_0_1_1.summary())
 
 
 
-```python
-# AR(1)xSAR(1)xVar.L1
-model_1_1 = ARIMA(endog=df_hourly['Dispatchable'], exog=df_hourly[['Variable.L1']], order=(1,0,0), seasonal_order=(1, 0, 0, 24))
-res_1_1 = model_1_1.fit()
-print(res_1_1.summary())
-```
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1250,12 +886,7 @@ print(res_1_1.summary())
 `ar.L1 == 1` is a random walk, where the most likely next value is the current value. On top of that, we have a strong relationship between the next value and the sample 24 hours ago, which is also close to a random walk with a 24 hr period. Finally, we also see that there is an inverse relationship between the forecasted dispatchable power output and the previous variable power output, as expected. We'll use the information criteria in the upper right to choose our model. 
 
 
-```python
-# AR(2)xSAR(1)xVar.L1
-model_1_2 = ARIMA(endog=df_hourly['Dispatchable'], exog=df_hourly[['Variable.L1']], order=(2, 0, 0), seasonal_order=(1, 0, 0, 24))
-res_1_2 = model_1_2.fit()
-print(res_1_2.summary())
-```
+
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1288,12 +919,7 @@ print(res_1_2.summary())
 The parameters have changed a bit now that we've added the extra lag. Besides the fit taking quite a bit longer, we now have a negative coefficient for the `L2` term and a positive coefficient for the `L1` term. This corresponds roughly to making a linear extrapolation from the previous two sample points. The coefficient of the `Variable.L1` term has also nearly disappeared, but it is still quite statistically significant.
 
 
-```python
-# AR(3)xSAR(1)xVar.L1
-model_1_3 = ARIMA(endog=df_hourly['Dispatchable'], exog=df_hourly[['Variable.L1']], order=(3, 0, 0), seasonal_order=(1, 0, 0, 24))
-res_1_3 = model_1_3.fit()
-print(res_1_3.summary())
-```
+
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1325,12 +951,7 @@ print(res_1_3.summary())
 
 
 
-```python
-# AR(4)xSAR(1)xVar.L1
-model_1_4 = ARIMA(endog=df_hourly['Dispatchable'], exog=df_hourly[['Variable.L1']], order=(4, 0, 0), seasonal_order=(1, 0, 0, 24))
-res_1_4 = model_1_4.fit()
-print(res_1_4.summary())
-```
+
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1365,12 +986,7 @@ print(res_1_4.summary())
 Non-convergence means that we are done adding terms, and `model_1_3` is the best we are going to do with only `Variable.L1`.
 
 
-```python
-# AR(1)xSAR(1)xVar.L1xVar.L2
-model_2_1 = ARIMA(endog=df_hourly['Dispatchable'], exog=df_hourly[['Variable.L1','Variable.L2']], order=(1, 0, 0), seasonal_order=(1, 0, 0, 24))
-res_2_1 = model_2_1.fit()
-print(res_2_1.summary())
-```
+
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1402,12 +1018,7 @@ print(res_2_1.summary())
 
 
 
-```python
-# AR(2)xSAR(1)xVar.L1xVar.L2
-model_2_2 = ARIMA(endog=df_hourly['Dispatchable'], exog=df_hourly[['Variable.L1','Variable.L2']], order=(2, 0, 0), seasonal_order=(1, 0, 0, 24))
-res_2_2 = model_2_2.fit()
-print(res_2_2.summary())
-```
+
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1440,12 +1051,7 @@ print(res_2_2.summary())
 
 
 
-```python
-# AR(4)xSAR(1)
-model_0_4 = ARIMA(endog=df_hourly['Dispatchable'], order=(4, 0, 0), seasonal_order=(1, 0, 0, 24))
-res_0_4 = model_0_4.fit()
-print(res_0_4.summary())
-```
+
                                         SARIMAX Results                                     
     ========================================================================================
     Dep. Variable:                     Dispatchable   No. Observations:                 8759
@@ -1478,34 +1084,6 @@ print(res_0_4.summary())
 
 We can plot a barchart of the AIC values for each model, which will help us decide which is optimal.
 
-
-```python
-AICs = pd.DataFrame(
-    {
-        'AIC':[158649.656, 160779.192, 138682.504,
-               138511.856, 136263.861, 136111.824,
-               137808.998, 136564.722, 136160.792],
-        'Model': ['AR(1)', 'SAR(1)', 'AR(1)xSAR(1)',
-                  'AR(1)xSAR(1)xVar.L1', 'AR(2)xSAR(1)xVar.L1', 'AR(3)xSAR(1)xVar.L1',
-                  'AR(1)xSAR(1)xVar.L1xVar.L2', 'AR(2)xSAR(1)xVar.L1xVar.L2', 'AR(4)xSAR(1)']
-    }
-)
-AICs['Relative AIC'] = AICs['AIC'] - np.min(AICs['AIC'])
-```
-
-
-```python
-sns.barplot(data=AICs, x='Relative AIC', y='Model')
-```
-
-
-
-
-    <AxesSubplot: xlabel='Relative AIC', ylabel='Model'>
-
-
-
-
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_60_1.png" | relative_url }})
     
@@ -1516,29 +1094,9 @@ The Relative AIC is just the difference between the given model's AIC and the lo
 Next we'll look directly at some predictions and residuals. First, we'll make a plot showing the predicted power vs the actual dispatchable power over the course of the year.
 
 
-```python
-preds = pd.DataFrame(res_1_3.predict()).rename(columns={'predicted_mean':'Predicted Power (MW)'})
-preds['Power (MW)'] = df_hourly['Dispatchable']
-preds['Residual (MW)'] = preds['Predicted Power (MW)'] - preds['Power (MW)']
-```
-
-
-```python
-ax = sns.lineplot(data=preds, x='Hour', y='Predicted Power (MW)')
-ax = sns.lineplot(ax=ax, data=preds, x='Hour', y='Power (MW)')
-```
-
-
-    
+ 
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_63_0.png" | relative_url }})
     
-
-
-
-```python
-ax = sns.lineplot(data=preds, x='Date', y='Residual (MW)')
-```
-
 
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_64_0.png" | relative_url }})
@@ -1549,13 +1107,6 @@ The residuals are small enough that they don't noticeably show up on the first p
 
 Next we'll look at some plots of 3 arbitrary days of data with different models, comparing the actual and predicted dispatchable power output. First we'll look at the final chosen model.
 
-
-```python
-ax = sns.lineplot(x=range(72), y=preds[24:96]['Power (MW)'], label='Power (MW)')
-ax = sns.lineplot(ax=ax, x=range(72), y=res_1_3.predict()[24:96], label='Predicted Power (MW)')
-```
-
-
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_66_0.png" | relative_url }})
     
@@ -1564,15 +1115,7 @@ ax = sns.lineplot(ax=ax, x=range(72), y=res_1_3.predict()[24:96], label='Predict
 We see excellent agreement in general, as expected.
 
 Next we'll look at the `AR(1)` model, a.k.a. one autoregressive lag, no seasonal component, and no dependence on prior variable resource output.
-
-
-```python
-ax = sns.lineplot(x=range(72), y=preds[24:96]['Power (MW)'], label='Power (MW)')
-ax = sns.lineplot(ax=ax, x=range(72), y=res_0_1_0.predict()[24:96], label='Predicted Power (MW)')
-```
-
-
-    
+ 
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_68_0.png" | relative_url }})
     
 
@@ -1580,13 +1123,6 @@ ax = sns.lineplot(ax=ax, x=range(72), y=res_0_1_0.predict()[24:96], label='Predi
 This model tends to predict slight mean reversion based on the previous sample, which makes sense on average, but is pretty bad in general.
 
 The next model includes only the "seasonal" (a.k.a. daily) term.
-
-
-```python
-ax = sns.lineplot(x=range(72), y=preds[24:96]['Power (MW)'], label='Power (MW)')
-ax = sns.lineplot(ax=ax, x=range(72), y=res_0_0_1.predict()[24:96], label='Predicted Power (MW)')
-```
-
 
     
 ![png]({{ "/assets/images/CAISO_analysis_files/CAISO_analysis_70_0.png" | relative_url }})
@@ -1596,15 +1132,6 @@ ax = sns.lineplot(ax=ax, x=range(72), y=res_0_0_1.predict()[24:96], label='Predi
 The prediction of this model is only informed by the value at the same time the day before, so while it doesn't show the lagged behavior that the previous plot does, it is not able to react to any information more recent than 24 hours ago, and consequently is not very good.
 
 Finally, let's plot the residuals of these models as well as the `AR(1)xSAR(1)xVar.L1` model together. We can see that both the green and red curve perform significanty better than the blue and orange curves, showing that having at least 4 terms (not including the constant term) in the model is important. Red and green are quite similar, but we know from the box-plot above that the more complex model (red) has a lower AIC than green. Since it also has more parameters, that must mean its likelihood is higher, and therefore it should have smaller residuals on average.
-
-
-```python
-days = 3
-ax = sns.lineplot(x=range(days*24), y=res_0_1_0.predict()[:days*24]-preds[:days*24]['Power (MW)'], label='Model AR(1) Residual (MW)')
-ax = sns.lineplot(ax=ax, x=range(days*24), y=res_0_0_1.predict()[:days*24]-preds[:days*24]['Power (MW)'], label='Model SAR(1) Residual (MW)')
-ax = sns.lineplot(ax=ax, x=range(days*24), y=res_1_1.predict()[:days*24]-preds[:days*24]['Power (MW)'], label='Model Var.L1xAR(1)xSAR(1) Residual (MW)')
-ax = sns.lineplot(ax=ax, x=range(days*24), y=res_1_3.predict()[:days*24]-preds[:days*24]['Power (MW)'], label='Model Var.L1xAR(3)xSAR(1) Residual (MW)')
-```
 
 
     
