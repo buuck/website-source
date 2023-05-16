@@ -30,7 +30,7 @@ feature_row:
     use_avatar: True
     alt: "Résumé!"
     title: "Check out my Résumé!"
-    url: "https://github.com/buuck/website-source/raw/main/resume2022.pdf"
+    url: "https://github.com/buuck/website-source/raw/main/buuck_latex_resume_2023.pdf"
     btn_class: "btn--primary"
     btn_label: "Download PDF"
 ---
