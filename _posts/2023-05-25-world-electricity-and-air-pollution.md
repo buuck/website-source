@@ -1,4 +1,17 @@
-## Connecting world electricity production with air pollution
+---
+title: "Connecting world electricity production with air pollution"
+excerpt_separator: "<!--more-->"
+categories:
+  - Blog
+tags:
+  - Energy
+  - Statistics
+  - Health
+  - Climate
+usemathjax: true
+toc: true
+toc_sticky: true
+---
 
 It is reasonable to assume that particularly dirty energy production, e.g. coal, will be associated with higher death rates from air pollution. This notebook investigates the relationship between different kinds of electricity production and deaths from air pollution using data from Our World in Data. I find that the relationship between electricity production and air pollution deaths is not quite so straightforward. You can also find this notebook, including the code and data, on [GitHub](https://www.github.com/buuck/world_electricity_and_air_pollution).
 

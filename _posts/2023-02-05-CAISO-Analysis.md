@@ -1,4 +1,16 @@
-# Analysis of 2021-2022 CAISO Power Source Data
+---
+title: "Analysis of 2021-2022 CAISO Power Source Data"
+excerpt_separator: "<!--more-->"
+categories:
+  - Blog
+tags:
+  - Energy
+  - Statistics
+  - Climate
+usemathjax: true
+toc: true
+toc_sticky: true
+---
 
 This data comes from [Kaggle](https://www.kaggle.com/datasets/karatechop/caiso-renewable-energy-data-20212022), and presumably ultimately from CAISO. The units are not labeled, so I am guessing a bit here on what is what. I'm going to do some exploratory analysis, and see if we can do any meaningful forecasting.
 
@@ -496,7 +508,7 @@ From the description below, we can see that Natural Gas is clearly the largest p
 
 
 
-## Exploratory Data Analysis
+### Exploratory Data Analysis
 
 This dataset comes in 5 minute intervals spanning a full year. That is >100k samples, which is difficult to visualize meaningfully all at once. Furthermore, there are at least 2 meaningful periods of variation in this dataset: daily and annually. For these reasons, we'll make 2 different plots, one showing the daily average power generation over the course of the full year, and one showing hourly power generation over one day, averaging over every day of the dataset.
 
@@ -715,7 +727,7 @@ In principle, some of the other resources can be ramped up or down, but I would 
 
 There's not quite as much to see here as in the previous plots, except that the duck curve is alive and well in the hourly plot. The daily plot is dominated by random variation and the seasonal variation of solar power.
 
-## Time-series Modeling
+### Time-series Modeling
 
 Let's see if we can extract any utility (haha) from time-series analysis of this data. First we'll try an ARIMA analysis.
 
